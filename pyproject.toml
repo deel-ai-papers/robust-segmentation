@@ -1,0 +1,23 @@
+[project]
+name = "lipschitz-robust-segmentation"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "adv-lib",
+    "clean-fid>=0.1.35",
+    "deel-torchlip>=1.0.2",
+    "lpips>=0.1.4",
+    "matplotlib>=3.10.7",
+    "orthogonium>=0.0.4",
+    "statsmodels>=0.14.5",
+    "torch>=2.8.0",
+    "torchmetrics>=1.8.2",
+    "torchvision>=0.23.0",
+    "tqdm>=4.67.1",
+    "wandb>=0.22.2",
+]
+
+[tool.uv.sources]
+adv-lib = { git = "https://github.com/jeromerony/adversarial-library" }
