@@ -43,7 +43,7 @@ def dag(
         logits = model(adv_inputs_)
 
         if isinstance(logits, tuple):
-            logits = logits[0] / logits[1]
+            logits = logits[0]
         else:
             pass
 

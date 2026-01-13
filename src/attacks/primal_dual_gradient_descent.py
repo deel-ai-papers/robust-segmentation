@@ -82,7 +82,7 @@ def pdgd(
         adv_inputs = inputs + r
         logits = model(adv_inputs)
         if isinstance(logits, tuple):
-            logits = logits[0] / logits[1]
+            logits = logits[0]
         else:
             pass
 
@@ -287,7 +287,7 @@ def pdpgd(
         adv_inputs = inputs + r
         logits = model(adv_inputs)
         if isinstance(logits, tuple):
-            logits = logits[0] / logits[1]
+            logits = logits[0]
         else:
             pass
 

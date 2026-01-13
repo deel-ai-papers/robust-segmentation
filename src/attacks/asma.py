@@ -47,7 +47,7 @@ def asma(
         adv_inputs = inputs + δ
         logits = model(adv_inputs)
         if isinstance(logits, tuple):
-            logits = logits[0] / logits[1]
+            logits = logits[0]
         else:
             pass
         l2_squared = δ.flatten(1).square().sum(dim=1)

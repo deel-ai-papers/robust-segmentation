@@ -5,6 +5,7 @@ from .primal_dual_gradient_descent import (
     pdgd,
     pdpgd,
 )
+from .pgd import pgd
 
 
 def get_attack(epsilon, p, num_steps):
@@ -13,12 +14,14 @@ def get_attack(epsilon, p, num_steps):
         "pdpgd": [2, float("inf")],
         "dag": [2, float("inf")],
         "asma": [2],
+        "pgd": [2, float("inf")],
     }
     attack_dict = {
         "pdgd": partial(pdgd, num_steps=num_steps),
         "pdpgd": partial(pdpgd, norm=p, num_steps=num_steps),
         "dag": partial(dag, p=p, max_iter=num_steps),
         "asma": partial(asma, num_steps=num_steps),
+        "pgd": partial(pgd, num_steps=num_steps),
     }
     list_attacks = [a for n, a in attack_dict.items() if p in dict_attack_norms[n]]
     list_threshold = [
