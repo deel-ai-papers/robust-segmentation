@@ -1,7 +1,13 @@
 import torch
+import numpy as np
 from torchmetrics import Accuracy, JaccardIndex
 
-from src.robustness import RobustnessMeasure, CertifiedPixelAcc, WCClassIoU
+from src.robustness import (
+    StabilityMeasure,
+    CertifiedPixelAcc,
+    WCClassIoU,
+    RobustnessMeasure,
+)
 from tqdm import tqdm
 from torchvision.utils import save_image
 import os
@@ -87,7 +93,7 @@ class Trainer:
             else None
         )
         self.robustness = (
-            RobustnessMeasure(alphas=(0.25, 0.5, 0.75), lipconstant=1.0).to(device)
+            StabilityMeasure(alphas=(0.25, 0.5, 0.75), lipconstant=1.0).to(device)
             if lipschitz
             else None
         )
@@ -194,7 +200,7 @@ class Trainer:
             ]
         return metrics
 
-    def attack(
+    def attack_q1(
         self,
         attacks,
         adv_thresholds,
@@ -300,7 +306,7 @@ class Trainer:
                 with torch.no_grad():
                     outs = self.model(adv_imgs)
                     if isinstance(outs, tuple):
-                        outs = outs[0] / outs[1]
+                        outs = outs[0]
                     adv_outputs.append(outs)
 
             # Shape (N_attacks, B, C, H, W)
@@ -335,6 +341,133 @@ class Trainer:
             wc_pacc <= metrics["attacked_acc"] + 1e-8
         ), f"Certified accuracy ({wc_pacc}) should not exceed attacked accuracy ({metrics['attacked_acc']})"
 
+        return metrics
+
+    def attack_q2(
+        self,
+        attacks,
+        adv_threshold,
+        p=2,
+        num_batches=float("inf"),
+    ):
+        """
+        Evaluates the model's performance against a set of adversarial attacks.
+
+        This function first calculates the clean and certified accuracy of the model.
+        It then applies a list of adversarial attacks to the validation data and
+        computes the worst-case accuracy among all attacks for each sample.
+
+        Args:
+            attacks (list): A list of attack objects to be applied.
+            adv_threshold (list): The desired adversarial threshold.
+            p (int, optional): The p-norm to use for measuring perturbations. Defaults to 2.
+            num_batches (float, optional): The maximum number of batches to process.
+                                         Defaults to float("inf") (all batches).
+
+        Returns:
+            dict: A dictionary containing performance metrics:
+                  - 'attacked_acc': Robust accuracy under the worst of the given attacks.
+                  - 'clean_acc': Accuracy on original, unperturbed images.
+                  - f'CRPA@{self.cpacc.epsilon}': Certified Robust Pixel Accuracy.
+        """
+        self.model.eval()
+        self.acc.reset()
+        self.cpacc.reset()
+
+        # Q2 certificate
+        wc_eps = RobustnessMeasure(alphas=[adv_threshold], lipconstant=1.0).to(
+            self.device
+        )
+        wc_eps.reset()
+
+        cpt = 0
+
+        # First pass: Calculate clean and certified accuracy
+        for imgs, labels in self.val_loader:
+            imgs, labels = imgs.to(self.device), labels.to(self.device)
+            labels = labels.long()
+            with torch.no_grad():
+                outputs = self.model(imgs)
+            if isinstance(outputs, (list, tuple)):
+                lip_c = float(outputs[1].item())
+                clean_preds = outputs[0]
+            else:
+                if self.lipschitz:
+                    lip_c = 1.0
+                else:
+                    lip_c = float("inf")
+                clean_preds = outputs
+            wc_eps.lipconstant = lip_c
+            self.acc.update(clean_preds, labels)
+            self.cpacc.lipconstant = lip_c
+            self.cpacc.update(clean_preds, labels, ignore_index=self.ignore_index)
+            wc_eps.update(clean_preds, labels, ignore_index=self.ignore_index)
+
+            cpt += 1
+            if cpt > num_batches:
+                break
+
+        cpacc = self.cpacc.compute()
+        wc_pacc = cpacc["certified_pixel_acc"]
+        q2_cert = wc_eps.compute()
+
+        # Second pass: Apply attacks and calculate robust accuracy
+        cpt = 0
+        min_norms = []
+
+        for imgs, labels in tqdm(self.val_loader, desc="Attacking"):
+            imgs, labels = imgs.to(self.device), labels.to(self.device)
+            labels = labels.long()
+            masks = labels != self.ignore_index
+            adv_outputs = []
+
+            norms = float("inf") * torch.ones(imgs.size(0))
+            for att in attacks:
+                max_adv_threshold = 1 - wc_pacc
+                adv_imgs = att(
+                    model=self.model,
+                    inputs=imgs,
+                    labels=labels,
+                    masks=masks,
+                    adv_threshold=adv_threshold,
+                )
+
+                with torch.no_grad():
+                    out = self.model(adv_imgs)
+
+                    if isinstance(out, tuple):
+                        out = out[0]
+
+                    valid = (
+                        (
+                            (out.argmax(1) == labels).sum(dim=(1, 2))
+                            / (labels != self.ignore_index).sum(dim=(1, 2))
+                        )
+                        <= 1 - adv_threshold
+                    ).cpu()
+                    norms_ = torch.norm(
+                        (adv_imgs - imgs).view(imgs.size(0), -1), p=p, dim=1
+                    ).cpu()
+                    norms_ = torch.where(
+                        valid, norms_, float("inf") * torch.ones_like(valid)
+                    )
+                    norms = torch.where(norms_ < norms, norms_, norms)
+
+            min_norms.append(norms.cpu().numpy())
+
+            cpt += 1
+            if cpt > num_batches:
+                break
+
+        # Calculate final metrics
+        min_norms = np.array(min_norms)
+        emp_eps = np.mean(min_norms[np.isfinite(min_norms)])
+        theo_eps = q2_cert["robustness@" + str(int(adv_threshold * 100))]
+        assert emp_eps >= theo_eps
+        metrics = {
+            "empirical_robustness": emp_eps,
+            "theoretical_robustness": theo_eps,
+        }
         return metrics
 
 

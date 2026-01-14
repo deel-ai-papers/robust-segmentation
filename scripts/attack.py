@@ -64,10 +64,16 @@ parser.add_argument(
     "--config", type=str, default="S", help="configuration for the model."
 )
 parser.add_argument("--epsilon", type=float, default=0.17, help="epsilon for klip.")
+parser.add_argument(
+    "--adv_threshold", type=float, default=0.99, help="adversarial objective"
+)
 parser.add_argument("--p_norm", type=float, default=2, help="p-norm for klip.")
 parser.add_argument("--num_batches", type=int, default=15, help="number of batches.")
 parser.add_argument(
     "--num_steps", type=int, default=250, help="number of steps for attack"
+)
+parser.add_argument(
+    "--certificate", type=str, default="q1", help="type of robustness certificate"
 )
 args = parser.parse_args()
 
@@ -133,6 +139,15 @@ attacks, adv_thresholds = get_attack(
     p=args.p_norm,
     num_steps=args.num_steps,
 )
+
+if args.certificate == "q1":
+    pass
+elif args.certificate == "q2":
+    attacks = [a for a, t in zip(attacks, adv_thresholds) if t]
+else:
+    raise ValueError("Unknown certification")
+
+# Placeholder
 optimizer_ = torch.optim.SGD(
     model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4
 )
@@ -155,7 +170,22 @@ trainer = Trainer(
 )
 model.eval()
 metrics = trainer.evaluate()
-attacked_metrics = trainer.attack(
-    attacks, adv_thresholds=adv_thresholds, p=args.p_norm, num_batches=args.num_batches
-)
+
+if args.certificate == "q1":
+    attacked_metrics = trainer.attack_q1(
+        attacks,
+        adv_thresholds=adv_thresholds,
+        p=args.p_norm,
+        num_batches=args.num_batches,
+    )
+elif args.certificate == "q2":
+    attacked_metrics = trainer.attack_q2(
+        attacks,
+        adv_threshold=args.adv_threshold,
+        p=args.p_norm,
+        num_batches=args.num_batches,
+    )
+else:
+    raise ValueError("Unknown certification")
+
 print("Attacked metrics: ", attacked_metrics)
