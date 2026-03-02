@@ -1,3 +1,4 @@
+#!/bin/bash
 #################################### LipNet ###################################
 
 ##### TRAINING #####
@@ -21,8 +22,12 @@
 #    --dataset iiit_pets --data_root $TORCH_DATASETS --img_size 128 --square_imgs \
 #    --wandb_log --batch_size 30 --loss tau_cce --tau 1.0  --optimizer adamw --lr 1e-3 \
 #    --wd 1e-4 --config M1 --epochs 150 --sigma_train 0.3
+# Train a model with noise augmentation (sigma=0.3) for randomized smoothing
+# CUDA_VISIBLE_DEVICES=0 python scripts/train.py --type_param unconstrained \
+#    --dataset iiit_pets --data_root $TORCH_DATASETS --img_size 128 --square_imgs \
+#    --wandb_log --batch_size 30 --loss tau_cce --tau 1.0 --optimizer adamw --lr 1e-3 \
+#    --wd 1e-4 --config M1 --epochs 150 --sigma_train 0.3
 
-#!/bin/bash
 
 #################################### LipNet ###################################
 
