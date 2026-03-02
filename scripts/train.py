@@ -155,7 +155,8 @@ lipconfig = (
     if args.type_param != "unconstrained"
     else "nonlip"
 )
-model_name = f"{args.dataset}_{args.type_param}_{args.config}_{args.loss}_{lipconfig}"
+tau_suffix = f"_tau{args.tau}" if args.loss == "tau_cce" else ""
+model_name = f"{args.dataset}_{args.type_param}_{args.config}_{args.loss}{tau_suffix}_{lipconfig}"
 if args.wandb_log:
     import wandb
 

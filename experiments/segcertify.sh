@@ -1,6 +1,5 @@
-
 ##################################################### IIIT Pets ################################################
-#
+
 # Epsilon = 0.1 / MC 50 / Sigma 0.3
 CUDA_VISIBLE_DEVICES=0 python scripts/segcertify.py \
   --dataset iiit_pets --data_root $TORCH_DATASETS --img_size 128 --square_imgs --config M1 \

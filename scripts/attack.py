@@ -2,6 +2,7 @@ import torch
 import argparse
 import os
 import sys
+import csv
 from torchvision import transforms as T
 from PIL import Image
 import lpips
@@ -75,6 +76,12 @@ parser.add_argument(
 parser.add_argument(
     "--certificate", type=str, default="q1", help="type of robustness certificate"
 )
+parser.add_argument(
+    "--model_file", type=str, default=None, help="path to the model checkpoint file"
+)
+parser.add_argument(
+    "--output_csv", type=str, default=None, help="path to save attack metrics as CSV"
+)
 args = parser.parse_args()
 
 train_ds, test_ds, means, stds, num_classes, ignore_index = get_dataset(args)
@@ -93,35 +100,41 @@ model = get_model(means, stds, in_channels=3, num_classes=num_classes, args=args
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-# Find the files with the right prefix
-lipconfig = (
-    "rms"
-    if args.klip and not args.learnable_coeffs
-    else "klip"
-    if args.klip
-    else "1lip"
-    if args.type_param != "unconstrained"
-    else "nonlip"
-)
-prefix = f"{args.dataset}_{args.type_param}_{args.config}"
-model_files = [
-    f for f in os.listdir("checkpoints") if f.startswith(prefix) and f.endswith(".pth")
-]
-model_files = [f for f in model_files if lipconfig in f if "optimizer" not in f]
-
-# Make the user select the right model if multiple are found
-if len(model_files) > 1:
-    print("Multiple model files found:")
-    for i, f in enumerate(model_files):
-        print(f"{i}: {f}")
-    idx = int(input("Select the model file to use: "))
-    model_file = model_files[idx]
-    print(f"Using model file: {model_file}")
-elif len(model_files) == 1:
-    model_file = model_files[0]
+# Find the model file to use
+if args.model_file is not None:
+    # Use the provided model file (filename only, will be loaded from checkpoints/)
+    model_file = args.model_file
     print(f"Using model file: {model_file}")
 else:
-    raise ValueError("No model file found.")
+    # Find the files with the right prefix
+    lipconfig = (
+        "rms"
+        if args.klip and not args.learnable_coeffs
+        else "klip"
+        if args.klip
+        else "1lip"
+        if args.type_param != "unconstrained"
+        else "nonlip"
+    )
+    prefix = f"{args.dataset}_{args.type_param}_{args.config}"
+    model_files = [
+        f for f in os.listdir("checkpoints") if f.startswith(prefix) and f.endswith(".pth")
+    ]
+    model_files = [f for f in model_files if lipconfig in f if "optimizer" not in f]
+
+    # Make the user select the right model if multiple are found
+    if len(model_files) > 1:
+        print("Multiple model files found:")
+        for i, f in enumerate(model_files):
+            print(f"{i}: {f}")
+        idx = int(input("Select the model file to use: "))
+        model_file = model_files[idx]
+        print(f"Using model file: {model_file}")
+    elif len(model_files) == 1:
+        model_file = model_files[0]
+        print(f"Using model file: {model_file}")
+    else:
+        raise ValueError("No model file found.")
 
 with torch.no_grad():
     for img, lbl in train_loader:
@@ -189,3 +202,26 @@ else:
     raise ValueError("Unknown certification")
 
 print("Attacked metrics: ", attacked_metrics)
+
+# Save metrics to CSV if output path is provided
+if args.output_csv is not None:
+    os.makedirs(os.path.dirname(args.output_csv) or ".", exist_ok=True)
+    file_exists = os.path.exists(args.output_csv)
+
+    row = {
+        "model_file": model_file,
+        "dataset": args.dataset,
+        "epsilon": args.epsilon,
+        "certificate": args.certificate,
+        "num_steps": args.num_steps,
+        "num_batches": args.num_batches,
+        **attacked_metrics,
+    }
+
+    with open(args.output_csv, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+    print(f"Metrics saved to {args.output_csv}")

@@ -8,6 +8,8 @@ wheels/
 checkpoints/
 wandb/
 img_data/
+data/old/
+experiments/debug.sh
 
 # Virtual environments
 .venv

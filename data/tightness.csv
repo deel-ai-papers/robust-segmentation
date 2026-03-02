@@ -1,0 +1,17 @@
+model_file,dataset,epsilon,certificate,num_steps,num_batches,attacked_acc,clean_acc,CRPA@0.1
+iiit_pets_ortho_M1_tau_cce_tau3.0_rms.pth,iiit_pets,0.1,q1,50,5,0.8214514851570129,0.8226032257080078,0.7668930292129517
+iiit_pets_ortho_M1_tau_cce_tau8.0_rms.pth,iiit_pets,0.1,q1,50,5,0.8534301519393921,0.8559610843658447,0.760975182056427
+iiit_pets_ortho_M1_tau_cce_tau16.0_rms.pth,iiit_pets,0.1,q1,50,5,0.8584964871406555,0.8626977801322937,0.7132261991500854
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.1,q1,50,5,0.8507835865020752,0.8520054817199707,0.0
+iiit_pets_ortho_M1_tau_cce_tau3.0_rms.pth,iiit_pets,0.5,q1,50,5,0.814907431602478,0.8226032257080078,0.6464786529541016
+iiit_pets_ortho_M1_tau_cce_tau8.0_rms.pth,iiit_pets,0.5,q1,50,5,0.8391513824462891,0.8559610843658447,0.5414791107177734
+iiit_pets_ortho_M1_tau_cce_tau16.0_rms.pth,iiit_pets,0.5,q1,50,5,0.8385542035102844,0.8626977801322937,0.36014702916145325
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.5,q1,50,5,0.8455233573913574,0.8520054817199707,0.0
+iiit_pets_ortho_M1_tau_cce_tau3.0_rms.pth,iiit_pets,1.0,q1,50,5,0.8064072728157043,0.8226032257080078,0.5264549851417542
+iiit_pets_ortho_M1_tau_cce_tau8.0_rms.pth,iiit_pets,1.0,q1,50,5,0.8225405812263489,0.8559610843658447,0.31825852394104004
+iiit_pets_ortho_M1_tau_cce_tau16.0_rms.pth,iiit_pets,1.0,q1,50,5,0.8159063458442688,0.8626977801322937,0.07682759314775467
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,1.0,q1,50,5,0.8384770750999451,0.8520054817199707,0.0
+iiit_pets_ortho_M1_tau_cce_tau3.0_rms.pth,iiit_pets,1.5,q1,50,5,0.7976674437522888,0.8226032257080078,0.41889211535453796
+iiit_pets_ortho_M1_tau_cce_tau8.0_rms.pth,iiit_pets,1.5,q1,50,5,0.8065363168716431,0.8559610843658447,0.14419473707675934
+iiit_pets_ortho_M1_tau_cce_tau16.0_rms.pth,iiit_pets,1.5,q1,50,5,0.794676661491394,0.8626977801322937,0.008076832629740238
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,1.5,q1,50,5,0.8306097984313965,0.8520054817199707,0.0

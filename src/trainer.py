@@ -8,7 +8,10 @@ from src.robustness import (
     WCClassIoU,
     RobustnessMeasure,
 )
+from src.smoothing.certify import certify
+from src.attacks.smooth_attack import smoothadv_pgd
 from tqdm import tqdm
+import scipy.stats as sps
 from torchvision.utils import save_image
 import os
 
@@ -467,6 +470,124 @@ class Trainer:
         metrics = {
             "empirical_robustness": emp_eps,
             "theoretical_robustness": theo_eps,
+        }
+        return metrics
+
+    def attack_smooth(
+        self,
+        sigma: float = 0.25,
+        n0: int = 100,
+        n: int = 1000,
+        tau: float = 0.0,
+        alpha: float = 0.001,
+        epsilon: float = 0.5,
+        num_steps: int = 40,
+        n_attack_samples: int = 32,
+        p: int = 2,
+        num_batches: float = float("inf"),
+    ):
+        self.model.eval()
+
+        if tau == 0.0:
+            tau = sps.norm.cdf(epsilon / sigma)
+            print(f"Computed tau={tau:.4f} from epsilon={epsilon}, sigma={sigma}")
+
+        clean_correct, attacked_correct, certified_correct = 0, 0, 0
+        total_pixels = 0
+        cpt = 0
+        radius = 0.0
+
+        for imgs, labels in tqdm(self.val_loader, desc="Smooth Attack"):
+            imgs, labels = imgs.to(self.device), labels.to(self.device)
+            labels = labels.long()
+            B, C, H, W = imgs.shape
+            masks = labels != self.ignore_index
+
+            # Generate noise once and reuse for both clean and attacked evaluation
+            noise = torch.randn((n0 + n, B, C, H, W), device=self.device) * sigma
+
+            with torch.no_grad():
+                all_preds = []
+                for i in range(n0 + n):
+                    noisy = imgs + noise[i]
+                    out = self.model(noisy)
+                    if isinstance(out, tuple):
+                        out = out[0]
+                    all_preds.append(out.argmax(dim=1).cpu().numpy())
+                samples_clean = np.stack(all_preds, axis=0)
+
+            adv_imgs = smoothadv_pgd(
+                model=self.model,
+                inputs=imgs,
+                labels=labels,
+                masks=~masks,
+                epsilon=epsilon,
+                num_steps=num_steps,
+                sigma=sigma,
+                n_samples=n_attack_samples,
+                p=p,
+            )
+
+            with torch.no_grad():
+                all_preds_atk = []
+                for i in range(n0 + n):
+                    noisy = adv_imgs + noise[i]
+                    out = self.model(noisy)
+                    if isinstance(out, tuple):
+                        out = out[0]
+                    all_preds_atk.append(out.argmax(dim=1).cpu().numpy())
+                samples_atk = np.stack(all_preds_atk, axis=0)
+
+            labels_np = labels.cpu().numpy()
+            masks_np = masks.cpu().numpy()
+
+            for b in range(B):
+                valid = masks_np[b].flatten()
+                lbl = labels_np[b].flatten()
+                K = valid.sum()
+                if K == 0:
+                    continue
+
+                sample_clean = samples_clean[:, b].reshape(n0 + n, -1)[:, valid]
+                pred_clean = np.apply_along_axis(
+                    lambda x: np.bincount(x, minlength=self.num_classes).argmax(),
+                    axis=0,
+                    arr=sample_clean,
+                )
+                clean_correct += (pred_clean == lbl[valid]).sum()
+
+                sample_atk = samples_atk[:, b].reshape(n0 + n, -1)[:, valid]
+                pred_atk = np.apply_along_axis(
+                    lambda x: np.bincount(x, minlength=self.num_classes).argmax(),
+                    axis=0,
+                    arr=sample_atk,
+                )
+                attacked_correct += (pred_atk == lbl[valid]).sum()
+
+                cert_pred, radius, _ = certify(
+                    num_classes=self.num_classes,
+                    sample=sample_clean,
+                    n0=n0,
+                    n=n,
+                    sigma=sigma,
+                    tau=tau,
+                    alpha=alpha,
+                    abstain=-1,
+                )
+                certified_mask = (cert_pred != -1) & (cert_pred == lbl[valid])
+                certified_correct += certified_mask.sum()
+
+                total_pixels += K
+
+            cpt += 1
+            if cpt >= num_batches:
+                break
+
+        metrics = {
+            "clean_acc": clean_correct / (total_pixels + 1e-8),
+            "attacked_acc": attacked_correct / (total_pixels + 1e-8),
+            "certified_acc": certified_correct / (total_pixels + 1e-8),
+            "certified_radius": radius,
         }
         return metrics
 
