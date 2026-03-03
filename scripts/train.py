@@ -161,7 +161,7 @@ if args.wandb_log:
     import wandb
 
     run = wandb.init(
-        project="cvpr-lipschitz-segmentation",
+        project="lipschitz-segmentation",
         name=model_name,
         config=args,
     )
