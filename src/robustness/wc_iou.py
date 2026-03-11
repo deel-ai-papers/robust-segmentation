@@ -1,16 +1,14 @@
 import torch
 from torchmetrics import Metric
-
 import torch.nn.functional as F
-from tqdm import tqdm
-
 
 class WCClassIoU(Metric):
-    def __init__(self, epsilon=0.1, lipconstant=1.0, class_num=0):
+    def __init__(self, epsilon=0.1, lipconstant=1.0, class_num=0, ignore_index=255):
         super().__init__()
         self.epsilon = float(epsilon)
         self.lipconstant = float(lipconstant)
         self.class_num = int(class_num)
+        self.ignore_index = int(ignore_index)
 
         # Micro-accumulators (sum of numerators/denominators across images)
         self.add_state(
@@ -58,12 +56,16 @@ class WCClassIoU(Metric):
         budget_sq = float((self.epsilon * self.lipconstant) ** 2)
 
         for b in range(B):
+            valid_mask = target[b] != self.ignore_index
+            
             is_k_gt = target[b] == k
             is_k_pred = preds[b] == k
-            A = is_k_gt & is_k_pred  # TP
-            Bm = (~is_k_gt) & is_k_pred  # FP
-            Cm = is_k_gt & (~is_k_pred)  # FN
-            D = (~is_k_gt) & (~is_k_pred)  # TN
+            
+            # Apply valid_mask strictly to all sets
+            A = is_k_gt & is_k_pred & valid_mask         # TP
+            Bm = (~is_k_gt) & is_k_pred & valid_mask     # FP
+            Cm = is_k_gt & (~is_k_pred) & valid_mask     # FN
+            D = (~is_k_gt) & (~is_k_pred) & valid_mask   # TN
 
             t = int(A.sum().item())
             b_ = int(Bm.sum().item())

@@ -1,0 +1,13 @@
+model_file,dataset,sigma,tau,epsilon,num_steps,num_batches,clean_acc,attacked_acc,certified_acc,certified_radius
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.2,0.0,0.1,1,50,0.8575407714843739,0.8542670898437489,0.8232004394531239,0.10000000000000003
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.5,0.0,0.1,1,50,0.7619539794921866,0.760452392578124,0.7148254394531242,0.09999999999999995
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.8,0.0,0.1,1,50,0.6054658203124993,0.6052565917968742,0.6006807861328117,0.10000000000000007
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.2,0.0,0.5,1,50,0.8575357666015614,0.8420572509765615,0.0,0.4999999999999998
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.5,0.0,0.5,1,50,0.7618460693359366,0.754287841796874,0.6473623046874992,0.5
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.8,0.0,0.5,1,50,0.6054837646484368,0.6044968261718743,0.5975252685546868,0.5
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.2,0.0,1.0,1,50,0.857529541015624,0.8277214355468739,0.0,0.9999999999940352
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.5,0.0,1.0,1,50,0.7617342529296866,0.746585449218749,0.0,1.0000000000000002
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.8,0.0,1.0,1,50,0.6054768066406242,0.6037036132812492,0.5931947021484367,0.9999999999999996
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.2,0.0,1.5,1,50,0.8576004638671865,0.816185546874999,0.0,1.5000374214207255
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.5,0.0,1.5,1,50,0.7617977294921865,0.7396881103515616,0.0,1.4999999999999991
+iiit_pets_unconstrained_M1_tau_cce_tau1.0_nonlip.pth,iiit_pets,0.8,0.0,1.5,1,50,0.6054658203124993,0.6028966064453117,0.0,1.4999999999999998
